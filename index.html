@@ -1,0 +1,600 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Обратная связь — Процессный офис</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { 
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; 
+      background: linear-gradient(135deg, #f5f7fa 0%, #e8ecf3 100%); 
+      min-height: 100vh;
+      padding: 20px;
+    }
+    .container { max-width: 720px; margin: 0 auto; }
+    
+    .nav { margin-bottom: 24px; display: flex; gap: 20px; }
+    .nav a { 
+      color: #64748b; text-decoration: none; font-size: 14px; 
+      padding: 8px 16px; border-radius: 20px; transition: all 0.2s;
+    }
+    .nav a:hover { background: white; color: #0066cc; }
+    .nav a.active { background: white; color: #0066cc; font-weight: 500; }
+    
+    .card { 
+      background: white; 
+      padding: 40px; 
+      border-radius: 16px; 
+      box-shadow: 0 4px 20px rgba(0,0,0,0.06);
+    }
+    
+    .header { margin-bottom: 32px; }
+    .header h1 { 
+      color: #1a1a1a; 
+      font-size: 28px; 
+      font-weight: 600; 
+      margin-bottom: 8px;
+      letter-spacing: -0.5px;
+    }
+    .header .subtitle { color: #64748b; font-size: 15px; line-height: 1.5; }
+    
+    .progress-bar {
+      height: 4px;
+      background: #e2e8f0;
+      border-radius: 2px;
+      margin-bottom: 32px;
+      overflow: hidden;
+    }
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #0066cc, #00a8ff);
+      border-radius: 2px;
+      transition: width 0.3s ease;
+      width: 0%;
+    }
+    
+    .form-group { margin-bottom: 32px; }
+    .question-label { 
+      display: block; 
+      font-weight: 500; 
+      margin-bottom: 12px; 
+      color: #1e293b; 
+      font-size: 15px;
+      line-height: 1.5;
+    }
+    .question-hint { 
+      display: block; 
+      color: #94a3b8; 
+      font-size: 13px; 
+      margin-top: 4px;
+      font-weight: 400;
+    }
+    
+    input[type="text"], input[type="email"], input[type="tel"], select, textarea {
+      width: 100%; 
+      padding: 12px 14px; 
+      border: 1px solid #e2e8f0; 
+      border-radius: 8px; 
+      font-size: 14px;
+      transition: all 0.2s;
+      background: #f8fafc;
+    }
+    input[type="text"]:focus, select:focus, textarea:focus {
+      outline: none;
+      border-color: #0066cc;
+      background: white;
+      box-shadow: 0 0 0 3px rgba(0,102,204,0.1);
+    }
+    textarea { min-height: 90px; resize: vertical; font-family: inherit; }
+    
+    .radio-group { display: flex; flex-direction: column; gap: 6px; }
+    .radio-group label {
+      padding: 12px 16px;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.2s;
+      color: #475569;
+      font-size: 14px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .radio-group label:hover { background: #f1f5f9; }
+    .radio-group input[type="radio"] { accent-color: #0066cc; }
+    .radio-group label:has(input:checked) { 
+      background: #eff6ff; 
+      color: #0066cc; 
+      font-weight: 500;
+    }
+    
+    /* Шкала оценок — без рамок */
+    .rating-scale { 
+      display: flex; 
+      gap: 4px; 
+      justify-content: space-between;
+      padding: 8px 0;
+    }
+    .rating-scale label { 
+      flex: 1;
+      display: flex; 
+      align-items: center; 
+      justify-content: center;
+      cursor: pointer; 
+      padding: 12px 0; 
+      border-radius: 8px;
+      color: #94a3b8;
+      font-size: 16px;
+      font-weight: 500;
+      transition: all 0.2s;
+      position: relative;
+    }
+    .rating-scale label:hover { 
+      color: #0066cc;
+      background: #f1f5f9;
+    }
+    .rating-scale input[type="radio"] { 
+      position: absolute;
+      opacity: 0;
+      pointer-events: none;
+    }
+    .rating-scale label:has(input:checked) { 
+      background: #0066cc;
+      color: white;
+      transform: scale(1.05);
+      box-shadow: 0 4px 12px rgba(0,102,204,0.3);
+    }
+    .rating-anchors {
+      display: flex;
+      justify-content: space-between;
+      font-size: 12px;
+      color: #94a3b8;
+      margin-top: 4px;
+    }
+    
+    button[type="submit"] { 
+      width: 100%;
+      background: #0066cc; 
+      color: white; 
+      padding: 14px 24px; 
+      border: none; 
+      border-radius: 10px; 
+      font-size: 16px; 
+      font-weight: 500;
+      cursor: pointer; 
+      margin-top: 12px;
+      transition: all 0.2s;
+    }
+    button[type="submit"]:hover { 
+      background: #0052a3;
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(0,102,204,0.3);
+    }
+    
+    .success-message { 
+      background: #ecfdf5; 
+      color: #065f46; 
+      padding: 20px; 
+      border-radius: 10px; 
+      margin-bottom: 24px; 
+      display: none;
+      border-left: 4px solid #10b981;
+    }
+    .success-message strong { display: block; margin-bottom: 4px; }
+    
+    .section-divider {
+      height: 1px;
+      background: #e2e8f0;
+      margin: 40px 0;
+    }
+    
+    .section-title {
+      font-size: 13px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: #94a3b8;
+      font-weight: 600;
+      margin-bottom: 20px;
+    }
+    
+    /* Подсветка обязательного поля при ошибке */
+    .field-error {
+      border-color: #ef4444 !important;
+      background: #fef2f2 !important;
+    }
+    .error-message {
+      color: #ef4444;
+      font-size: 13px;
+      margin-top: 6px;
+      display: none;
+    }
+    .error-message.visible { display: block; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="nav">
+      <a href="/" class="active">📝 Опрос</a>
+      <a href="/admin.html">📊 Админ-панель</a>
+    </div>
+
+    <div class="card">
+      <div class="success-message" id="successMessage">
+        <strong>✅ Спасибо за обратную связь!</strong>
+        Ваше мнение помогает нам становиться лучше.
+      </div>
+
+      <div class="header">
+        <h1>Ваше мнение важно для нас</h1>
+        <p class="subtitle">Расскажите, как Процессный офис помогает вам в работе. Опрос займёт 3-5 минут.</p>
+      </div>
+
+      <div class="progress-bar">
+        <div class="progress-fill" id="progressFill"></div>
+      </div>
+
+      <form id="surveyForm">
+        <div class="section-title">О вас</div>
+
+        <div class="form-group">
+          <label class="question-label">
+            Ваша роль *
+          </label>
+          <div class="radio-group">
+            <label><input type="radio" name="role" value="Линейный сотрудник" required> Линейный сотрудник</label>
+            <label><input type="radio" name="role" value="Руководитель"> Руководитель</label>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="question-label">Ваш департамент *</label>
+          <select name="department" required>
+            <option value="">Выберите департамент...</option>
+            <option value="Департамент продаж">Департамент продаж</option>
+            <option value="Департамент маркетинга">Департамент маркетинга</option>
+            <option value="Департамент финансов">Департамент финансов</option>
+            <option value="Департамент HR">Департамент HR</option>
+            <option value="IT департамент">IT департамент</option>
+            <option value="Операционный департамент">Операционный департамент</option>
+            <option value="Другой">Другой</option>
+          </select>
+        </div>
+
+        <div class="form-group" id="otherDepartmentGroup" style="display: none;">
+          <label class="question-label">Укажите название департамента *</label>
+          <input type="text" name="other_department" placeholder="Например: Департамент логистики">
+        </div>
+
+        <div class="section-divider"></div>
+        <div class="section-title">Оцените работу Процессного офиса</div>
+
+        <div class="form-group">
+          <label class="question-label">
+            Насколько эффективно офис решает ваши задачи?
+            <span class="question-hint">1 — совсем не помогает, 10 — максимально эффективно</span>
+          </label>
+          <div class="rating-scale">
+            <label><input type="radio" name="effectiveness" value="1" required><span>1</span></label>
+            <label><input type="radio" name="effectiveness" value="2"><span>2</span></label>
+            <label><input type="radio" name="effectiveness" value="3"><span>3</span></label>
+            <label><input type="radio" name="effectiveness" value="4"><span>4</span></label>
+            <label><input type="radio" name="effectiveness" value="5"><span>5</span></label>
+            <label><input type="radio" name="effectiveness" value="6"><span>6</span></label>
+            <label><input type="radio" name="effectiveness" value="7"><span>7</span></label>
+            <label><input type="radio" name="effectiveness" value="8"><span>8</span></label>
+            <label><input type="radio" name="effectiveness" value="9"><span>9</span></label>
+            <label><input type="radio" name="effectiveness" value="10"><span>10</span></label>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="question-label">
+            Как вы оцениваете коммуникацию с сотрудниками офиса?
+            <span class="question-hint">1 — очень плохо, 10 — превосходно</span>
+          </label>
+          <div class="rating-scale">
+            <label><input type="radio" name="communication" value="1" required><span>1</span></label>
+            <label><input type="radio" name="communication" value="2"><span>2</span></label>
+            <label><input type="radio" name="communication" value="3"><span>3</span></label>
+            <label><input type="radio" name="communication" value="4"><span>4</span></label>
+            <label><input type="radio" name="communication" value="5"><span>5</span></label>
+            <label><input type="radio" name="communication" value="6"><span>6</span></label>
+            <label><input type="radio" name="communication" value="7"><span>7</span></label>
+            <label><input type="radio" name="communication" value="8"><span>8</span></label>
+            <label><input type="radio" name="communication" value="9"><span>9</span></label>
+            <label><input type="radio" name="communication" value="10"><span>10</span></label>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="question-label">
+            Насколько понятны регламенты, с которыми вы работаете?
+            <span class="question-hint">1 — совсем непонятны, 10 — предельно понятны</span>
+          </label>
+          <div class="rating-scale">
+            <label><input type="radio" name="transparency" value="1" required><span>1</span></label>
+            <label><input type="radio" name="transparency" value="2"><span>2</span></label>
+            <label><input type="radio" name="transparency" value="3"><span>3</span></label>
+            <label><input type="radio" name="transparency" value="4"><span>4</span></label>
+            <label><input type="radio" name="transparency" value="5"><span>5</span></label>
+            <label><input type="radio" name="transparency" value="6"><span>6</span></label>
+            <label><input type="radio" name="transparency" value="7"><span>7</span></label>
+            <label><input type="radio" name="transparency" value="8"><span>8</span></label>
+            <label><input type="radio" name="transparency" value="9"><span>9</span></label>
+            <label><input type="radio" name="transparency" value="10"><span>10</span></label>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="question-label">
+            Насколько быстро сотрудники реагируют на ваши запросы?
+            <span class="question-hint">1 — очень медленно, 10 — мгновенно</span>
+          </label>
+          <div class="rating-scale">
+            <label><input type="radio" name="responsiveness" value="1" required><span>1</span></label>
+            <label><input type="radio" name="responsiveness" value="2"><span>2</span></label>
+            <label><input type="radio" name="responsiveness" value="3"><span>3</span></label>
+            <label><input type="radio" name="responsiveness" value="4"><span>4</span></label>
+            <label><input type="radio" name="responsiveness" value="5"><span>5</span></label>
+            <label><input type="radio" name="responsiveness" value="6"><span>6</span></label>
+            <label><input type="radio" name="responsiveness" value="7"><span>7</span></label>
+            <label><input type="radio" name="responsiveness" value="8"><span>8</span></label>
+            <label><input type="radio" name="responsiveness" value="9"><span>9</span></label>
+            <label><input type="radio" name="responsiveness" value="10"><span>10</span></label>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="question-label">
+            Насколько быстро закрываются ваши запросы?
+            <span class="question-hint">1 — очень долго, 10 — моментально</span>
+          </label>
+          <div class="rating-scale">
+            <label><input type="radio" name="closure_speed" value="1" required><span>1</span></label>
+            <label><input type="radio" name="closure_speed" value="2"><span>2</span></label>
+            <label><input type="radio" name="closure_speed" value="3"><span>3</span></label>
+            <label><input type="radio" name="closure_speed" value="4"><span>4</span></label>
+            <label><input type="radio" name="closure_speed" value="5"><span>5</span></label>
+            <label><input type="radio" name="closure_speed" value="6"><span>6</span></label>
+            <label><input type="radio" name="closure_speed" value="7"><span>7</span></label>
+            <label><input type="radio" name="closure_speed" value="8"><span>8</span></label>
+            <label><input type="radio" name="closure_speed" value="9"><span>9</span></label>
+            <label><input type="radio" name="closure_speed" value="10"><span>10</span></label>
+          </div>
+        </div>
+
+        <div class="section-divider"></div>
+        <div class="section-title">Бизнес-результат</div>
+
+        <div class="form-group">
+          <label class="question-label">
+            Насколько вы удовлетворены результатом?
+            <span class="question-hint">1 — совсем не удовлетворён, 10 — полностью удовлетворён</span>
+          </label>
+          <div class="rating-scale">
+            <label><input type="radio" name="csat_score" value="1" required><span>1</span></label>
+            <label><input type="radio" name="csat_score" value="2"><span>2</span></label>
+            <label><input type="radio" name="csat_score" value="3"><span>3</span></label>
+            <label><input type="radio" name="csat_score" value="4"><span>4</span></label>
+            <label><input type="radio" name="csat_score" value="5"><span>5</span></label>
+            <label><input type="radio" name="csat_score" value="6"><span>6</span></label>
+            <label><input type="radio" name="csat_score" value="7"><span>7</span></label>
+            <label><input type="radio" name="csat_score" value="8"><span>8</span></label>
+            <label><input type="radio" name="csat_score" value="9"><span>9</span></label>
+            <label><input type="radio" name="csat_score" value="10"><span>10</span></label>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="question-label">Соблюдаются ли оговорённые сроки?</label>
+          <div class="radio-group">
+            <label><input type="radio" name="sla_compliance" value="Да, точно в срок" required> Да, точно в срок</label>
+            <label><input type="radio" name="sla_compliance" value="С небольшой задержкой"> С небольшой задержкой</label>
+            <label><input type="radio" name="sla_compliance" value="Сильная задержка"> Сильная задержка</label>
+            <label><input type="radio" name="sla_compliance" value="Не знаю"> Не знаю</label>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="question-label">
+            Как изменение процессов влияет на ваше рабочее время?
+          </label>
+          <div class="radio-group">
+            <label><input type="radio" name="fte_impact" value="Экономят более 2 часов в неделю" required> Экономят более 2 часов в неделю</label>
+            <label><input type="radio" name="fte_impact" value="Незначительно экономят время"> Незначительно экономят время</label>
+            <label><input type="radio" name="fte_impact" value="Не повлияли"> Не повлияли</label>
+            <label><input type="radio" name="fte_impact" value="Создают бюрократию, трачу больше времени"> Создают бюрократию, трачу больше времени</label>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="question-label">
+            Порекомендовали бы вы коллегам обращаться в Процессный офис?
+            <span class="question-hint">0 — точно нет, 10 — обязательно да</span>
+          </label>
+          <div class="rating-scale">
+            <label><input type="radio" name="nps_score" value="0" required><span>0</span></label>
+            <label><input type="radio" name="nps_score" value="1"><span>1</span></label>
+            <label><input type="radio" name="nps_score" value="2"><span>2</span></label>
+            <label><input type="radio" name="nps_score" value="3"><span>3</span></label>
+            <label><input type="radio" name="nps_score" value="4"><span>4</span></label>
+            <label><input type="radio" name="nps_score" value="5"><span>5</span></label>
+            <label><input type="radio" name="nps_score" value="6"><span>6</span></label>
+            <label><input type="radio" name="nps_score" value="7"><span>7</span></label>
+            <label><input type="radio" name="nps_score" value="8"><span>8</span></label>
+            <label><input type="radio" name="nps_score" value="9"><span>9</span></label>
+            <label><input type="radio" name="nps_score" value="10"><span>10</span></label>
+          </div>
+        </div>
+
+        <div class="section-divider"></div>
+        <div class="section-title">Ваши идеи</div>
+
+        <div class="form-group">
+          <label class="question-label">Что в нашей работе вам нравится?</label>
+          <textarea name="positive_feedback" placeholder="Расскажите, что работает хорошо..."></textarea>
+        </div>
+
+        <div class="form-group">
+          <label class="question-label">Что стоит улучшить?</label>
+          <textarea name="improvement_suggestions" placeholder="Ваши идеи и предложения..."></textarea>
+        </div>
+
+        <div class="form-group">
+          <label class="question-label">С чего нам стоит начать изменения?</label>
+          <textarea name="priority_actions" placeholder="Одно действие, которое изменит всё..."></textarea>
+        </div>
+
+        <div class="section-divider"></div>
+
+        <div class="form-group">
+          <label class="question-label">Хотите, чтобы мы связались с вами для обсуждения?</label>
+          <div class="radio-group">
+            <label><input type="radio" name="wants_callback" value="no" checked> Нет, спасибо</label>
+            <label><input type="radio" name="wants_callback" value="yes"> Да, готов обсудить детали</label>
+          </div>
+        </div>
+
+        <div class="form-group" id="contactGroup" style="display: none;">
+          <label class="question-label">Как с вами связаться? *</label>
+          <input type="text" name="contact_info" id="contactInfo" placeholder="Телефон или email">
+          <div class="error-message" id="contactError">Пожалуйста, укажите контактные данные, чтобы мы могли с вами связаться</div>
+        </div>
+
+        <button type="submit">Отправить ответ</button>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    // === Прогресс-бар ===
+    const progressFill = document.getElementById('progressFill');
+    const form = document.getElementById('surveyForm');
+    
+    function updateProgress() {
+      const requiredFields = form.querySelectorAll('[required]');
+      let filled = 0;
+      requiredFields.forEach(field => {
+        if (field.type === 'radio') {
+          const name = field.name;
+          if (form.querySelector(`input[name="${name}"]:checked`)) filled++;
+        } else if (field.value && field.value !== '') {
+          filled++;
+        }
+      });
+      const radioGroups = new Set();
+      requiredFields.forEach(f => { if (f.type === 'radio') radioGroups.add(f.name); });
+      const total = (requiredFields.length - radioGroups.size) + radioGroups.size;
+      const percent = Math.min(100, (filled / total) * 100);
+      progressFill.style.width = percent + '%';
+    }
+    
+    form.addEventListener('input', updateProgress);
+    form.addEventListener('change', updateProgress);
+
+    // === Ветвление: Департамент "Другой" ===
+    const departmentSelect = document.querySelector('select[name="department"]');
+    const otherDepartmentGroup = document.getElementById('otherDepartmentGroup');
+    const otherDepartmentInput = document.querySelector('input[name="other_department"]');
+
+    function updateOtherDepartmentVisibility() {
+      if (departmentSelect.value === 'Другой') {
+        otherDepartmentGroup.style.display = 'block';
+        otherDepartmentInput.required = true;
+      } else {
+        otherDepartmentGroup.style.display = 'none';
+        otherDepartmentInput.required = false;
+        otherDepartmentInput.value = '';
+      }
+      updateProgress();
+    }
+    departmentSelect.addEventListener('change', updateOtherDepartmentVisibility);
+    updateOtherDepartmentVisibility();
+
+    // === Ветвление: Обратный звонок → Контакты ===
+    const contactGroup = document.getElementById('contactGroup');
+    const contactInfo = document.getElementById('contactInfo');
+    const contactError = document.getElementById('contactError');
+
+    document.querySelectorAll('input[name="wants_callback"]').forEach(radio => {
+      radio.addEventListener('change', (e) => {
+        if (e.target.value === 'yes') {
+          contactGroup.style.display = 'block';
+          contactInfo.required = true;
+        } else {
+          contactGroup.style.display = 'none';
+          contactInfo.required = false;
+          contactInfo.value = '';
+          contactInfo.classList.remove('field-error');
+          contactError.classList.remove('visible');
+        }
+        updateProgress();
+      });
+    });
+
+    contactInfo.addEventListener('input', () => {
+      if (contactInfo.value.trim() !== '') {
+        contactInfo.classList.remove('field-error');
+        contactError.classList.remove('visible');
+      }
+    });
+
+    // === Отправка формы ===
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      
+      const wantsCallback = form.querySelector('input[name="wants_callback"]:checked').value === 'yes';
+      if (wantsCallback && contactInfo.value.trim() === '') {
+        contactInfo.classList.add('field-error');
+        contactError.classList.add('visible');
+        contactInfo.focus();
+        contactInfo.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        return;
+      }
+      
+      const formData = new FormData(e.target);
+      const data = Object.fromEntries(formData);
+      
+      if (data.department === 'Другой' && data.other_department) {
+        data.department = data.other_department;
+      }
+      delete data.other_department;
+      
+      data.effectiveness = parseInt(data.effectiveness);
+      data.communication = parseInt(data.communication);
+      data.transparency = parseInt(data.transparency);
+      data.responsiveness = parseInt(data.responsiveness);
+      data.closure_speed = parseInt(data.closure_speed);
+      data.csat_score = parseInt(data.csat_score);
+      data.nps_score = parseInt(data.nps_score);
+      data.wants_callback = data.wants_callback === 'yes';
+      
+      try {
+        const response = await fetch('/api/survey', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data)
+        });
+        
+        if (response.ok) {
+          document.getElementById('successMessage').style.display = 'block';
+          e.target.reset();
+          otherDepartmentGroup.style.display = 'none';
+          contactGroup.style.display = 'none';
+          progressFill.style.width = '0%';
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+          
+          setTimeout(() => {
+            document.getElementById('successMessage').style.display = 'none';
+          }, 5000);
+        } else {
+          alert('Ошибка при отправке. Попробуйте ещё раз.');
+        }
+      } catch (error) {
+        console.error('Error:', error);
+        alert('Ошибка соединения с сервером.');
+      }
+    });
+  </script>
+</body>
+</html>

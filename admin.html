@@ -1,0 +1,1037 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Админ-панель — Процессный офис</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f5f7fa; padding: 20px; }
+    .container { max-width: 1400px; margin: 0 auto; }
+    .nav { margin-bottom: 24px; display: flex; gap: 20px; align-items: center; }
+    .nav a { color: #64748b; text-decoration: none; font-size: 14px; padding: 8px 16px; border-radius: 20px; transition: all 0.2s; }
+    .nav a:hover { background: white; color: #0066cc; }
+    .nav a.active { background: white; color: #0066cc; font-weight: 500; }
+    
+    .header { 
+      background: white; 
+      padding: 20px 28px; 
+      border-radius: 16px; 
+      margin-bottom: 20px; 
+      box-shadow: 0 2px 10px rgba(0,0,0,0.04);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+    .header-info h1 { font-size: 22px; color: #1a1a1a; font-weight: 600; margin-bottom: 4px; }
+    .header-info .subtitle { color: #64748b; font-size: 14px; }
+    .header-controls { display: flex; gap: 10px; align-items: flex-end; flex-wrap: wrap; }
+    .filter-group { display: flex; flex-direction: column; gap: 4px; }
+    .filter-label { font-size: 11px; color: #64748b; text-transform: uppercase; font-weight: 600; }
+    .filter-select { padding: 8px 12px; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 14px; background: white; cursor: pointer; min-width: 180px; }
+    .filter-select:focus { outline: none; border-color: #0066cc; }
+    
+    .btn { padding: 10px 18px; border-radius: 8px; border: none; cursor: pointer; font-size: 14px; font-weight: 500; text-decoration: none; display: inline-flex; align-items: center; gap: 6px; transition: all 0.2s; }
+    .btn-primary { background: #0066cc; color: white; }
+    .btn-primary:hover { background: #0052a3; }
+    .btn-secondary { background: #f1f5f9; color: #334155; }
+    .btn-secondary:hover { background: #e2e8f0; }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    
+    .status-bar { background: linear-gradient(135deg, #1e293b 0%, #334155 100%); color: white; padding: 20px 28px; border-radius: 12px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px; }
+    .status-main { display: flex; align-items: center; gap: 12px; }
+    .status-icon { font-size: 32px; }
+    .status-text h2 { font-size: 18px; font-weight: 600; margin-bottom: 2px; }
+    .status-text p { font-size: 13px; opacity: 0.9; }
+    .status-link { color: white; text-decoration: underline; cursor: pointer; font-size: 13px; opacity: 0.9; }
+    .status-link:hover { opacity: 1; }
+    
+    .key-metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-bottom: 20px; }
+    .metric-card { background: white; padding: 22px; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.04); position: relative; overflow: hidden; }
+    .metric-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; }
+    .metric-card.good::before { background: #10b981; }
+    .metric-card.warning::before { background: #f59e0b; }
+    .metric-card.bad::before { background: #ef4444; }
+    .metric-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px; }
+    .metric-label { color: #64748b; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600; }
+    .metric-badge { font-size: 11px; padding: 2px 8px; border-radius: 10px; font-weight: 500; }
+    .metric-badge.good { background: #d1fae5; color: #065f46; }
+    .metric-badge.warning { background: #fef3c7; color: #92400e; }
+    .metric-badge.bad { background: #fee2e2; color: #991b1b; }
+    .metric-value { font-size: 36px; font-weight: 700; color: #1a1a1a; letter-spacing: -1px; line-height: 1; margin-bottom: 4px; }
+    .metric-target { font-size: 12px; color: #94a3b8; }
+    .metric-delta { font-size: 12px; margin-top: 6px; }
+    .metric-delta.up { color: #10b981; }
+    .metric-delta.down { color: #ef4444; }
+    
+    .problems-section { background: white; padding: 24px 28px; border-radius: 12px; margin-bottom: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.04); }
+    .section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+    .section-header h2 { font-size: 17px; color: #1a1a1a; font-weight: 600; display: flex; align-items: center; gap: 8px; }
+    .section-count { background: #f1f5f9; color: #475569; padding: 4px 10px; border-radius: 12px; font-size: 12px; font-weight: 600; }
+    .problem-item { padding: 16px 18px; background: #fef2f2; border-left: 4px solid #ef4444; border-radius: 8px; margin-bottom: 12px; }
+    .problem-item.warning { background: #fffbeb; border-left-color: #f59e0b; }
+    .problem-item.success { background: #ecfdf5; border-left-color: #10b981; }
+    .problem-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 6px; }
+    .problem-title { font-weight: 600; color: #1a1a1a; font-size: 15px; }
+    .problem-priority { font-size: 11px; padding: 2px 8px; border-radius: 10px; font-weight: 600; text-transform: uppercase; }
+    .problem-priority.high { background: #fee2e2; color: #991b1b; }
+    .problem-priority.medium { background: #fef3c7; color: #92400e; }
+    .problem-priority.low { background: #d1fae5; color: #065f46; }
+    .problem-desc { font-size: 13px; color: #475569; margin-bottom: 8px; }
+    .problem-action { font-size: 13px; color: #0066cc; font-weight: 500; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; }
+    .problem-action:hover { text-decoration: underline; }
+    
+    .charts-row { display: grid; grid-template-columns: 450px 1fr; gap: 20px; margin-bottom: 20px; }
+    .chart-card { background: white; padding: 24px; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.04); }
+    .chart-card h3 { margin-bottom: 4px; font-size: 15px; color: #1a1a1a; font-weight: 600; }
+    .chart-subtitle { font-size: 12px; color: #94a3b8; margin-bottom: 16px; }
+    
+    .heatmap-table { width: 100%; border-collapse: collapse; }
+    .heatmap-table th { text-align: left; padding: 10px 8px; font-size: 11px; text-transform: uppercase; color: #64748b; font-weight: 600; border-bottom: 2px solid #e2e8f0; }
+    .heatmap-table td { padding: 12px 8px; font-size: 13px; border-bottom: 1px solid #f1f5f9; text-align: center; }
+    .heatmap-table tr:hover { background: #f8fafc; }
+    .heatmap-cell { padding: 6px 10px; border-radius: 6px; font-weight: 500; display: inline-block; min-width: 50px; }
+    .heatmap-cell.good { background: #d1fae5; color: #065f46; }
+    .heatmap-cell.warning { background: #fef3c7; color: #92400e; }
+    .heatmap-cell.bad { background: #fee2e2; color: #991b1b; }
+    .dept-name { text-align: left !important; font-weight: 500; color: #1a1a1a; }
+    
+    .voice-section { background: white; padding: 24px 28px; border-radius: 12px; margin-bottom: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.04); }
+    .themes-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 12px; }
+    .theme-item { padding: 14px 16px; background: #f8fafc; border-radius: 8px; border-left: 4px solid #0066cc; }
+    .theme-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+    .theme-title { font-weight: 600; color: #1a1a1a; font-size: 14px; }
+    .theme-count { font-size: 12px; background: #0066cc; color: white; padding: 2px 8px; border-radius: 10px; font-weight: 600; }
+    .theme-examples { font-size: 12px; color: #64748b; font-style: italic; }
+    
+    .collapsible-section { background: white; padding: 24px 28px; border-radius: 12px; margin-bottom: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.04); }
+    .collapsible-header { display: flex; justify-content: space-between; align-items: center; cursor: pointer; padding-bottom: 16px; border-bottom: 1px solid #e2e8f0; margin-bottom: 16px; }
+    .collapsible-header h2 { font-size: 17px; color: #1a1a1a; font-weight: 600; display: flex; align-items: center; gap: 8px; }
+    .collapsible-toggle { font-size: 13px; color: #0066cc; cursor: pointer; font-weight: 500; user-select: none; }
+    .collapsible-content { display: none; }
+    .collapsible-content.visible { display: block; }
+    
+    .table-wrapper { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; min-width: 800px; }
+    th, td { padding: 12px; text-align: left; border-bottom: 1px solid #f1f5f9; font-size: 13px; white-space: nowrap; }
+    th { background: #f8fafc; font-weight: 600; color: #475569; text-transform: uppercase; font-size: 11px; letter-spacing: 0.5px; position: sticky; top: 0; }
+    tr:hover { background: #f8fafc; }
+    
+    tr.low-score { background: #fef2f2 !important; }
+    tr.low-score:hover { background: #fee2e2 !important; }
+    tr.low-score td { border-bottom-color: #fecaca; }
+    tr.low-score .metric-cell-low { color: #ef4444; font-weight: 600; }
+    
+    .pagination { display: flex; justify-content: space-between; align-items: center; margin-top: 20px; padding-top: 16px; border-top: 1px solid #e2e8f0; }
+    .pagination-info { font-size: 13px; color: #64748b; }
+    .pagination-controls { display: flex; gap: 8px; align-items: center; }
+    .page-btn { padding: 6px 12px; border: 1px solid #e2e8f0; background: white; border-radius: 6px; cursor: pointer; font-size: 13px; transition: all 0.2s; }
+    .page-btn:hover:not(:disabled) { background: #f1f5f9; border-color: #0066cc; }
+    .page-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .page-btn.active { background: #0066cc; color: white; border-color: #0066cc; }
+    .page-numbers { display: flex; gap: 4px; }
+    
+    .empty-state { text-align: center; padding: 60px 20px; color: #94a3b8; }
+    .empty-state-icon { font-size: 48px; margin-bottom: 12px; }
+    
+    @media (max-width: 1024px) { .charts-row { grid-template-columns: 1fr; } }
+    @media (max-width: 768px) { 
+      .header { flex-direction: column; align-items: flex-start; }
+      .header-controls { width: 100%; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="nav">
+      <a href="/">📝 Опрос</a>
+      <a href="/admin.html" class="active">📊 Админ-панель</a>
+    </div>
+
+    <div class="header">
+      <div class="header-info">
+        <h1>Панель управления обратной связью</h1>
+        <div class="subtitle">Аналитика и рекомендации по работе Процессного офиса</div>
+      </div>
+      <div class="header-controls">
+        <div class="filter-group">
+          <label class="filter-label">Департамент</label>
+          <select class="filter-select" id="filterDepartment">
+            <option value="all">Все департаменты</option>
+          </select>
+        </div>
+        <div class="filter-group">
+          <label class="filter-label">Роль</label>
+          <select class="filter-select" id="filterRole">
+            <option value="all">Все роли</option>
+            <option value="Линейный сотрудник">Линейный сотрудник</option>
+            <option value="Руководитель">Руководитель</option>
+          </select>
+        </div>
+        <button class="btn btn-secondary" onclick="refreshData()">🔄 Обновить</button>
+        <a href="/api/admin/export" class="btn btn-primary">📥 Экспорт в Excel</a>
+      </div>
+    </div>
+
+    <div id="content"></div>
+  </div>
+
+  <script>
+    console.log('📊 Admin Panel v13.0 loaded');
+    
+    let charts = {};
+    let allData = { metrics: null, responses: [] };
+    let currentFilters = { department: 'all', role: 'all' };
+    let currentPage = 1;
+    let currentPageCallback = 1;
+    const pageSize = 20;
+
+    // === ЕДИНАЯ ЛОГИКА ОЦЕНКИ МЕТРИК ===
+    
+    function evaluateScale10(value) {
+      const v = parseFloat(value);
+      if (v >= 8) return { color: 'good', text: 'Отлично' };
+      if (v >= 6) return { color: 'warning', text: 'Норма' };
+      return { color: 'bad', text: 'Внимание' };
+    }
+    
+    function evaluatePercent(value, target) {
+      const v = parseFloat(value);
+      const t = parseFloat(target);
+      if (v >= t) return { color: 'good', text: 'Отлично' };
+      if (v >= t * 0.9) return { color: 'warning', text: 'Норма' };
+      return { color: 'bad', text: 'Внимание' };
+    }
+    
+    function evaluateNps(value) {
+      const v = parseFloat(value);
+      if (v >= 40) return { color: 'good', text: 'Отлично' };
+      if (v >= 0) return { color: 'warning', text: 'Норма' };
+      return { color: 'bad', text: 'Внимание' };
+    }
+    
+    function evaluateBureaucracy(value) {
+      const v = parseFloat(value);
+      if (v <= 10) return { color: 'good', text: 'Норма' };
+      if (v <= 15) return { color: 'warning', text: 'Внимание' };
+      return { color: 'bad', text: 'Критично' };
+    }
+
+    function getSatStatus(v) {
+      if (v < 6) return 'bad';
+      if (v < 8) return 'warning';
+      return 'good';
+    }
+
+    function getPercentStatus(value, target) {
+      const v = parseFloat(value);
+      const t = parseFloat(target);
+      if (v >= t) return 'good';
+      if (v >= t * 0.9) return 'warning';
+      return 'bad';
+    }
+
+    function getOverallStatus(statuses) {
+      const order = { good: 0, warning: 1, bad: 2 };
+      const max = Math.max(...statuses.map(s => order[s]));
+      return ['good', 'warning', 'bad'][max];
+    }
+
+    function getStatusColor(status) {
+      return { good: '#10b981', warning: '#f59e0b', bad: '#ef4444' }[status];
+    }
+
+    function getDeltaInfo(value, target, inverse = false) {
+      const v = parseFloat(value);
+      const t = parseFloat(target);
+      if (inverse) {
+        if (v <= t) return { direction: 'down', color: 'up' };
+        return { direction: 'down', color: 'down' };
+      } else {
+        if (v >= t) return { direction: 'up', color: 'up' };
+        return { direction: 'down', color: 'down' };
+      }
+    }
+
+    // Взвешенный расчёт SLA
+    function getSlaWeight(slaValue) {
+  if (slaValue === 'Да, точно в срок') return 1.0;
+  if (slaValue === 'С небольшой задержкой') return 0.75;
+  if (slaValue === 'Сильная задержка') return 0.0;
+  return 0.5; // "Не знаю" = 0.5 (нейтрально)
+}
+
+    // === УНИФИЦИРОВАННЫЕ ПРИОРИТЕТЫ ПРОБЛЕМ ===
+    function getProblemPriorityClass(priority) {
+      return { high: 'high', medium: 'medium', low: 'low' }[priority] || 'medium';
+    }
+    
+    function getProblemPriorityText(priority) {
+      return { 
+        high: 'Критично', 
+        medium: 'Требует внимания', 
+        low: 'Низкий приоритет' 
+      }[priority] || 'Требует внимания';
+    }
+
+    async function loadData() {
+      try {
+        console.log('🔄 Загрузка данных...');
+        const [metricsRes, responsesRes] = await Promise.all([
+          fetch('/api/admin/metrics'),
+          fetch('/api/admin/responses')
+        ]);
+        if (!metricsRes.ok || !responsesRes.ok) {
+          throw new Error('HTTP ошибка при загрузке');
+        }
+        const serverMetrics = await metricsRes.json();
+        const serverResponses = await responsesRes.json();
+        console.log('📊 Метрики:', serverMetrics);
+        console.log('📋 Ответов:', serverResponses.length);
+        allData = { metrics: serverMetrics, responses: serverResponses };
+        currentPage = 1;
+        currentPageCallback = 1;
+        applyFilters();
+      } catch (error) {
+        console.error('❌ Ошибка загрузки:', error);
+        document.getElementById('content').innerHTML = `
+          <div class="empty-state">
+            <div class="empty-state-icon">⚠️</div>
+            <h3>Ошибка загрузки данных</h3>
+            <p>${error.message}</p>
+            <button class="btn btn-primary" style="margin-top:16px;" onclick="refreshData()">Попробовать снова</button>
+          </div>
+        `;
+      }
+    }
+
+    function applyFilters() {
+      let filtered = [...allData.responses];
+      if (currentFilters.department !== 'all') {
+        filtered = filtered.filter(r => r.department === currentFilters.department);
+      }
+      if (currentFilters.role !== 'all') {
+        filtered = filtered.filter(r => r.role === currentFilters.role);
+      }
+      const filteredMetrics = calculateMetrics(filtered);
+      render(filteredMetrics, filtered);
+      updateFilterOptions();
+    }
+
+    function calculateMetrics(responses) {
+      if (responses.length === 0) {
+        return { message: 'Нет данных', totalResponses: 0 };
+      }
+      const total = responses.length;
+      const avg = (field) => {
+        const sum = responses.reduce((acc, r) => acc + (r[field] || 0), 0);
+        return (sum / total).toFixed(2);
+      };
+      const csatCount = responses.filter(r => r.csat_score >= 8).length;
+      const csatPercentage = ((csatCount / total) * 100).toFixed(1);
+      const promoters = responses.filter(r => r.nps_score >= 9).length;
+      const detractors = responses.filter(r => r.nps_score <= 6).length;
+      const nps = (((promoters - detractors) / total) * 100).toFixed(1);
+      const fteAnalysis = {};
+      responses.forEach(r => {
+        const impact = r.fte_impact || 'Не указано';
+        fteAnalysis[impact] = (fteAnalysis[impact] || 0) + 1;
+      });
+      const slaAnalysis = {};
+      responses.forEach(r => {
+        const sla = r.sla_compliance || 'Не указано';
+        slaAnalysis[sla] = (slaAnalysis[sla] || 0) + 1;
+      });
+      const byDepartment = {};
+      responses.forEach(r => {
+        const dept = r.department || 'Не указано';
+        if (!byDepartment[dept]) {
+          byDepartment[dept] = { 
+            count: 0, 
+            effectiveness: [], communication: [], transparency: [], 
+            responsiveness: [], closure_speed: [], csat: [], nps: [],
+            sla: [], fte: [] 
+          };
+        }
+        byDepartment[dept].count++;
+        byDepartment[dept].effectiveness.push(r.effectiveness || 0);
+        byDepartment[dept].communication.push(r.communication || 0);
+        byDepartment[dept].transparency.push(r.transparency || 0);
+        byDepartment[dept].responsiveness.push(r.responsiveness || 0);
+        byDepartment[dept].closure_speed.push(r.closure_speed || 0);
+        byDepartment[dept].csat.push(r.csat_score || 0);
+        byDepartment[dept].nps.push(r.nps_score || 0);
+        const slaWeight = getSlaWeight(r.sla_compliance);
+        byDepartment[dept].sla.push(slaWeight);
+        const ftePositive = (r.fte_impact === 'Экономят более 2 часов в неделю' || 
+                            r.fte_impact === 'Незначительно экономят время') ? 1 : 0;
+        byDepartment[dept].fte.push(ftePositive);
+      });
+      Object.keys(byDepartment).forEach(dept => {
+        const d = byDepartment[dept];
+        d.avgEffectiveness = (d.effectiveness.reduce((a, b) => a + b, 0) / d.count).toFixed(2);
+        d.avgCommunication = (d.communication.reduce((a, b) => a + b, 0) / d.count).toFixed(2);
+        d.avgTransparency = (d.transparency.reduce((a, b) => a + b, 0) / d.count).toFixed(2);
+        d.avgResponsiveness = (d.responsiveness.reduce((a, b) => a + b, 0) / d.count).toFixed(2);
+        d.avgClosureSpeed = (d.closure_speed.reduce((a, b) => a + b, 0) / d.count).toFixed(2);
+        d.avgCsat = (d.csat.reduce((a, b) => a + b, 0) / d.count).toFixed(2);
+        d.avgNps = (d.nps.reduce((a, b) => a + b, 0) / d.count).toFixed(2);
+        d.slaPercentage = ((d.sla.reduce((a, b) => a + b, 0) / d.count) * 100).toFixed(1);
+        d.ftePercentage = ((d.fte.reduce((a, b) => a + b, 0) / d.count) * 100).toFixed(1);
+      });
+      return {
+        totalResponses: total,
+        averages: {
+          effectiveness: avg('effectiveness'),
+          communication: avg('communication'),
+          transparency: avg('transparency'),
+          responsiveness: avg('responsiveness'),
+          closure_speed: avg('closure_speed'),
+          csat: avg('csat_score'),
+          nps: avg('nps_score')
+        },
+        csatPercentage: csatPercentage,
+        nps: nps,
+        fteAnalysis,
+        slaAnalysis,
+        byDepartment
+      };
+    }
+
+    function updateFilterOptions() {
+      const deptSelect = document.getElementById('filterDepartment');
+      const departments = [...new Set(allData.responses.map(r => r.department))].sort();
+      const currentDept = deptSelect.value;
+      deptSelect.innerHTML = '<option value="all">Все департаменты</option>' +
+        departments.map(d => `<option value="${d}">${d}</option>`).join('');
+      deptSelect.value = currentDept;
+    }
+
+    function generateInsights(metrics) {
+      const problems = [];
+      const strengths = [];
+      
+      if (!metrics || !metrics.averages) return { problems, strengths };
+      
+      const avgs = metrics.averages;
+      const metricNames = {
+        effectiveness: 'Эффективность',
+        communication: 'Коммуникация',
+        transparency: 'Прозрачность регламентов',
+        responsiveness: 'Оперативность',
+        closure_speed: 'Скорость закрытия'
+      };
+      
+      let minMetric = { key: '', value: 10 };
+      Object.entries(avgs).forEach(([key, value]) => {
+        if (metricNames[key] && parseFloat(value) < parseFloat(minMetric.value)) {
+          minMetric = { key, value };
+        }
+      });
+      if (parseFloat(minMetric.value) < 7 && minMetric.key) {
+        problems.push({
+          priority: 'high',
+          title: `${metricNames[minMetric.key]}: ${minMetric.value}/10`,
+          desc: 'Самая низкая оценка среди всех аспектов работы',
+          action: 'Провести глубинный анализ проблемы'
+        });
+      }
+      
+      if (metrics.fteAnalysis) {
+        const bureaucracyCount = metrics.fteAnalysis['Создают бюрократию, трачу больше времени'] || 0;
+        const bureaucracyPercent = ((bureaucracyCount / metrics.totalResponses) * 100).toFixed(1);
+        if (bureaucracyCount > 0) {
+          problems.push({
+            priority: bureaucracyPercent > 15 ? 'high' : 'medium',
+            title: `${bureaucracyPercent}% считают процессы бюрократией`,
+            desc: 'Процессы отнимают время вместо экономии',
+            action: 'Запустить аудит регламентов'
+          });
+        }
+      }
+      
+      if (metrics.byDepartment) {
+        const depts = Object.entries(metrics.byDepartment);
+        if (depts.length > 0) {
+          const worstDept = depts.reduce((min, [name, data]) =>
+            parseFloat(data.avgCsat) < parseFloat(min[1].avgCsat) ? [name, data] : min
+          , depts[0]);
+          if (parseFloat(worstDept[1].avgCsat) < 7) {
+            problems.push({
+              priority: 'high',
+              title: `${worstDept[0]}: CSAT ${worstDept[1].avgCsat}/10`,
+              desc: 'Департамент значительно менее удовлетворён',
+              action: 'Встреча с руководителем департамента'
+            });
+          }
+          const worstSlaDept = depts.reduce((min, [name, data]) =>
+            parseFloat(data.slaPercentage) < parseFloat(min[1].slaPercentage) ? [name, data] : min
+          , depts[0]);
+          if (parseFloat(worstSlaDept[1].slaPercentage) < 75) {
+            problems.push({
+              priority: parseFloat(worstSlaDept[1].slaPercentage) < 50 ? 'high' : 'medium',
+              title: `${worstSlaDept[0]}: SLA ${worstSlaDept[1].slaPercentage}%`,
+              desc: 'Низкое соблюдение сроков в департаменте',
+              action: 'Пересмотреть SLA и процессы'
+            });
+          }
+        }
+      }
+      
+      const slaWeights = allData.responses.map(r => getSlaWeight(r.sla_compliance));
+      const slaOnTimePercent = ((slaWeights.reduce((a, b) => a + b, 0) / allData.responses.length) * 100).toFixed(1);
+      if (slaOnTimePercent < 75) {
+        problems.push({
+          priority: slaOnTimePercent < 50 ? 'high' : 'medium',
+          title: `Общий SLA: ${slaOnTimePercent}%`,
+          desc: 'Низкое соблюдение сроков по всем запросам',
+          action: 'Аудит процессов и сроков'
+        });
+      }
+      
+      let maxMetric = { key: '', value: 0 };
+      Object.entries(avgs).forEach(([key, value]) => {
+        if (metricNames[key] && parseFloat(value) > parseFloat(maxMetric.value)) {
+          maxMetric = { key, value };
+        }
+      });
+      if (parseFloat(maxMetric.value) >= 8 && maxMetric.key) {
+        strengths.push({
+          title: `${metricNames[maxMetric.key]} (${maxMetric.value}/10)`,
+          desc: 'Это конкурентное преимущество',
+          action: 'Изучить и масштабировать лучшие практики'
+        });
+      }
+      
+      const csatPercent = parseFloat(metrics.csatPercentage);
+      if (csatPercent >= 80) {
+        strengths.push({
+          title: `CSAT: ${csatPercent}%`,
+          desc: 'Высокая удовлетворённость сотрудников',
+          action: 'Поддерживать текущий уровень'
+        });
+      }
+      
+      const npsValue = parseFloat(metrics.nps);
+      if (npsValue >= 40) {
+        strengths.push({
+          title: `NPS: ${npsValue}`,
+          desc: 'Высокая лояльность сотрудников',
+          action: 'Использовать как пример для других подразделений'
+        });
+      }
+      
+      return { problems, strengths };
+    }
+
+    function analyzeTextFeedback(responses) {
+      const themes = {};
+      const keywords = {
+        'Упростить регламенты': ['упростить', 'сложно', 'запутанно', 'много шагов'],
+        'Сократить время согласования': ['долго', 'время', 'сроки', 'медленно', 'задержка'],
+        'Добавить обучающие материалы': ['обучение', 'непонятно', 'инструкция', 'пример'],
+        'Автоматизировать рутину': ['автоматизация', 'рутина', 'вручную', 'автомат'],
+        'Улучшить коммуникацию': ['коммуникация', 'связь', 'ответ', 'обратная связь'],
+        'Увеличить прозрачность': ['прозрачность', 'статус', 'где', 'что происходит']
+      };
+      responses.forEach(r => {
+        const texts = [
+          r.positive_feedback || '',
+          r.improvement_suggestions || '',
+          r.priority_actions || ''
+        ].join(' ').toLowerCase();
+        Object.entries(keywords).forEach(([theme, words]) => {
+          words.forEach(word => {
+            if (texts.includes(word)) {
+              themes[theme] = (themes[theme] || 0) + 1;
+            }
+          });
+        });
+      });
+      return Object.entries(themes).sort((a, b) => b[1] - a[1]).slice(0, 5);
+    }
+
+    function toggleSection(sectionId) {
+      const content = document.getElementById(sectionId + 'Content');
+      const toggle = document.getElementById(sectionId + 'Toggle');
+      content.classList.toggle('visible');
+      toggle.textContent = content.classList.contains('visible') ? 'Свернуть ▲' : 'Развернуть ▼';
+    }
+
+    function goToPage(page, totalPages) {
+      if (page < 1 || page > totalPages) return;
+      currentPage = page;
+      const content = document.getElementById('rawDataContent');
+      if (content && content.classList.contains('visible')) {
+        const responses = getFilteredResponses();
+        renderRawDataTable(responses);
+      }
+    }
+
+    function goToCallbackPage(page, totalPages) {
+      if (page < 1 || page > totalPages) return;
+      currentPageCallback = page;
+      const content = document.getElementById('callbackContent');
+      if (content && content.classList.contains('visible')) {
+        const responses = getCallbackResponses();
+        renderCallbackTable(responses);
+      }
+    }
+
+    function getFilteredResponses() {
+      let filtered = [...allData.responses];
+      if (currentFilters.department !== 'all') {
+        filtered = filtered.filter(r => r.department === currentFilters.department);
+      }
+      if (currentFilters.role !== 'all') {
+        filtered = filtered.filter(r => r.role === currentFilters.role);
+      }
+      return filtered;
+    }
+
+    function getCallbackResponses() {
+      let filtered = allData.responses.filter(r => r.wants_callback === true || r.wants_callback === 1);
+      if (currentFilters.department !== 'all') {
+        filtered = filtered.filter(r => r.department === currentFilters.department);
+      }
+      if (currentFilters.role !== 'all') {
+        filtered = filtered.filter(r => r.role === currentFilters.role);
+      }
+      return filtered;
+    }
+
+    function renderPagination(start, end, total, currentPage, totalPages, goToFn) {
+      return `
+        <div class="pagination">
+          <div class="pagination-info">
+            Показано ${start + 1}–${Math.min(end, total)} из ${total} записей
+          </div>
+          <div class="pagination-controls">
+            <button class="page-btn" onclick="${goToFn}(1, ${totalPages})" ${currentPage === 1 ? 'disabled' : ''}>⟪</button>
+            <button class="page-btn" onclick="${goToFn}(${currentPage - 1}, ${totalPages})" ${currentPage === 1 ? 'disabled' : ''}>◀</button>
+            <div class="page-numbers">
+              ${Array.from({length: Math.min(5, totalPages)}, (_, i) => {
+                let pageNum;
+                if (totalPages <= 5) pageNum = i + 1;
+                else if (currentPage <= 3) pageNum = i + 1;
+                else if (currentPage >= totalPages - 2) pageNum = totalPages - 4 + i;
+                else pageNum = currentPage - 2 + i;
+                return `<button class="page-btn ${pageNum === currentPage ? 'active' : ''}" onclick="${goToFn}(${pageNum}, ${totalPages})">${pageNum}</button>`;
+              }).join('')}
+            </div>
+            <button class="page-btn" onclick="${goToFn}(${currentPage + 1}, ${totalPages})" ${currentPage === totalPages ? 'disabled' : ''}>▶</button>
+            <button class="page-btn" onclick="${goToFn}(${totalPages}, ${totalPages})" ${currentPage === totalPages ? 'disabled' : ''}>⟫</button>
+          </div>
+        </div>
+      `;
+    }
+
+    function renderRawDataTable(responses) {
+      const content = document.getElementById('rawDataContent');
+      if (!content) return;
+      
+      const totalPages = Math.ceil(responses.length / pageSize);
+      const start = (currentPage - 1) * pageSize;
+      const end = start + pageSize;
+      const pageData = responses.slice(start, end);
+
+      let html = `
+        <div class="table-wrapper">
+          <table>
+            <thead>
+              <tr>
+                <th>ID</th><th>Дата</th><th>Роль</th><th>Департамент</th><th>Тип</th><th>Процесс</th>
+                <th>Эфф.</th><th>Комм.</th><th>Прозр.</th><th>Опер.</th><th>Скор.</th>
+                <th>CSAT</th><th>NPS</th><th>SLA</th><th>FTE</th>
+                <th>Что устраивает</th><th>Что улучшить</th><th>Приоритет</th>
+                <th>Звонок</th><th>Контакт</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${pageData.map(r => `
+                <tr>
+                  <td>${r.id}</td>
+                  <td>${new Date(r.created_at).toLocaleString('ru-RU', {day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit'})}</td>
+                  <td>${r.role || '—'}</td>
+                  <td>${r.department}</td>
+                  <td style="font-size:11px;">${r.interaction_type || '—'}</td>
+                  <td>${r.specific_process || '—'}</td>
+                  <td>${r.effectiveness}</td><td>${r.communication}</td>
+                  <td>${r.transparency}</td><td>${r.responsiveness}</td>
+                  <td>${r.closure_speed}</td><td>${r.csat_score}</td><td>${r.nps_score}</td>
+                  <td>${r.sla_compliance}</td>
+                  <td style="font-size:11px; white-space:normal;">${r.fte_impact}</td>
+                  <td style="white-space:normal; max-width:200px;">${r.positive_feedback || '—'}</td>
+                  <td style="white-space:normal; max-width:200px;">${r.improvement_suggestions || '—'}</td>
+                  <td style="white-space:normal; max-width:200px;">${r.priority_actions || '—'}</td>
+                  <td>${r.wants_callback ? 'Да' : 'Нет'}</td>
+                  <td>${r.contact_info || '—'}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
+        ${renderPagination(start, end, responses.length, currentPage, totalPages, 'goToPage')}
+      `;
+      content.innerHTML = html;
+    }
+
+    function renderCallbackTable(responses) {
+      const content = document.getElementById('callbackContent');
+      if (!content) return;
+      
+      const totalPages = Math.ceil(responses.length / pageSize);
+      const start = (currentPageCallback - 1) * pageSize;
+      const end = start + pageSize;
+      const pageData = responses.slice(start, end);
+
+      let html = `
+        <div class="table-wrapper">
+          <table>
+            <thead>
+              <tr>
+                <th>Дата</th><th>Роль</th><th>Департамент</th><th>Контакт</th><th>CSAT</th><th>NPS</th><th>Комментарий</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${pageData.map(r => {
+                const hasLowScore = (r.csat_score < 7 || r.nps_score < 7);
+                return `
+                  <tr class="${hasLowScore ? 'low-score' : ''}">
+                    <td>${new Date(r.created_at).toLocaleString('ru-RU', {day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit'})}</td>
+                    <td>${r.role || '—'}</td>
+                    <td>${r.department}</td>
+                    <td><a href="mailto:${r.contact_info}" style="color:#0066cc; text-decoration:none;">${r.contact_info || '—'}</a></td>
+                    <td class="${r.csat_score < 7 ? 'metric-cell-low' : ''}">${r.csat_score}</td>
+                    <td class="${r.nps_score < 7 ? 'metric-cell-low' : ''}">${r.nps_score}</td>
+                    <td style="white-space:normal; max-width:300px;">${r.improvement_suggestions || r.priority_actions || '—'}</td>
+                  </tr>
+                `;
+              }).join('')}
+            </tbody>
+          </table>
+        </div>
+        ${renderPagination(start, end, responses.length, currentPageCallback, totalPages, 'goToCallbackPage')}
+      `;
+      content.innerHTML = html;
+    }
+
+    function render(metrics, responses) {
+      const container = document.getElementById('content');
+      if (!metrics || metrics.message === 'Нет данных' || metrics.totalResponses === 0) {
+        container.innerHTML = `
+          <div class="empty-state">
+            <div class="empty-state-icon"></div>
+            <h3>Пока нет ответов</h3>
+            <p>Поделитесь ссылкой на опрос с сотрудниками</p>
+          </div>
+        `;
+        return;
+      }
+
+      const { problems, strengths } = generateInsights(metrics);
+      const callbackRequests = responses.filter(r => r.wants_callback === true || r.wants_callback === 1);
+      const themes = analyzeTextFeedback(responses);
+
+      const overallCsat = parseFloat(metrics.averages.csat);
+      const slaWeights = responses.map(r => getSlaWeight(r.sla_compliance));
+      const slaOnTimePercent = ((slaWeights.reduce((a, b) => a + b, 0) / responses.length) * 100).toFixed(1);
+      const ftePositive = (metrics.fteAnalysis['Экономят более 2 часов в неделю'] || 0) + 
+                          (metrics.fteAnalysis['Незначительно экономят время'] || 0);
+      const ftePercentage = ((ftePositive / metrics.totalResponses) * 100).toFixed(1);
+      const bureaucracyCount = metrics.fteAnalysis['Создают бюрократию, трачу больше времени'] || 0;
+      const bureaucracyPercent = ((bureaucracyCount / metrics.totalResponses) * 100).toFixed(1);
+      
+      const satStatus = getSatStatus(overallCsat);
+      const slaStatus = getPercentStatus(slaOnTimePercent, 85);
+      const fteStatus = getPercentStatus(ftePercentage, 70);
+      
+      const overallStatus = getOverallStatus([satStatus, slaStatus, fteStatus]);
+
+      const statusIcons = { good: '', warning: '🟡', bad: '🔴' };
+      const statusTexts = { good: 'Всё хорошо', warning: 'Есть проблемы', bad: 'Критично' };
+
+      let html = '';
+
+      html += `
+        <div class="status-bar">
+          <div class="status-main">
+            <div class="status-icon">${statusIcons[overallStatus]}</div>
+            <div class="status-text">
+              <h2>Общий статус: ${statusTexts[overallStatus]}</h2>
+              <p>
+                Удовлетворённость: <span style="color: ${getStatusColor(satStatus)}; font-weight: 600;">${overallCsat}/10</span>
+                &nbsp;|&nbsp;
+                Операционная эффективность: SLA <span style="color: ${getStatusColor(slaStatus)}; font-weight: 600;">${slaOnTimePercent}%</span>
+                &nbsp;
+                FTE <span style="color: ${getStatusColor(fteStatus)}; font-weight: 600;">${ftePercentage}%</span>
+              </p>
+            </div>
+          </div>
+          <div class="status-link" onclick="document.getElementById('problemsSection').scrollIntoView({behavior: 'smooth'})">
+            Подробнее →
+          </div>
+        </div>
+      `;
+
+      const csatEval = evaluatePercent(metrics.csatPercentage, 80);
+      const npsEval = evaluateNps(metrics.nps);
+      const slaEval = evaluatePercent(slaOnTimePercent, 85);
+      const fteEval = evaluatePercent(ftePercentage, 70);
+      const bureaucracyEval = evaluateBureaucracy(bureaucracyPercent);
+
+      const csatDelta = getDeltaInfo(metrics.csatPercentage, 80);
+      const npsDelta = getDeltaInfo(metrics.nps, 40);
+      const slaDelta = getDeltaInfo(slaOnTimePercent, 85);
+      const fteDelta = getDeltaInfo(ftePercentage, 70);
+      const bureaucracyDelta = getDeltaInfo(bureaucracyPercent, 10, true);
+
+      html += `
+        <div class="key-metrics">
+          <div class="metric-card ${csatEval.color}">
+            <div class="metric-header">
+              <div class="metric-label">CSAT</div>
+              <span class="metric-badge ${csatEval.color}">${csatEval.text}</span>
+            </div>
+            <div class="metric-value">${metrics.csatPercentage}%</div>
+            <div class="metric-target">Цель: 80%</div>
+            <div class="metric-delta ${csatDelta.color}">${csatDelta.direction === 'up' ? '↑' : '↓'} % довольных (оценки 8-10)</div>
+          </div>
+          <div class="metric-card ${npsEval.color}">
+            <div class="metric-header">
+              <div class="metric-label">NPS</div>
+              <span class="metric-badge ${npsEval.color}">${npsEval.text}</span>
+            </div>
+            <div class="metric-value">${metrics.nps}</div>
+            <div class="metric-target">Цель: +40 (диапазон: -100 до +100)</div>
+            <div class="metric-delta ${npsDelta.color}">${npsDelta.direction === 'up' ? '↑' : '↓'} Индекс лояльности</div>
+          </div>
+          <div class="metric-card ${slaEval.color}">
+            <div class="metric-header">
+              <div class="metric-label">SLA</div>
+              <span class="metric-badge ${slaEval.color}">${slaEval.text}</span>
+            </div>
+            <div class="metric-value">${slaOnTimePercent}%</div>
+            <div class="metric-target">Цель: 85%</div>
+            <div class="metric-delta ${slaDelta.color}">${slaDelta.direction === 'up' ? '↑' : '↓'} Соблюдение сроков</div>
+          </div>
+          <div class="metric-card ${fteEval.color}">
+            <div class="metric-header">
+              <div class="metric-label">FTE</div>
+              <span class="metric-badge ${fteEval.color}">${fteEval.text}</span>
+            </div>
+            <div class="metric-value">${ftePercentage}%</div>
+            <div class="metric-target">Цель: 70%</div>
+            <div class="metric-delta ${fteDelta.color}">${fteDelta.direction === 'up' ? '↑' : '↓'} Экономят время</div>
+          </div>
+          <div class="metric-card ${bureaucracyEval.color}">
+            <div class="metric-header">
+              <div class="metric-label">Бюрократия</div>
+              <span class="metric-badge ${bureaucracyEval.color}">${bureaucracyEval.text}</span>
+            </div>
+            <div class="metric-value">${bureaucracyPercent}%</div>
+            <div class="metric-target">Цель: &lt;10%</div>
+            <div class="metric-delta ${bureaucracyDelta.color}">${bureaucracyDelta.direction === 'up' ? '↑' : '↓'} Создают лишнюю работу</div>
+          </div>
+        </div>
+      `;
+
+      // Проблемные зоны с унифицированными приоритетами
+      html += `
+        <div class="problems-section" id="problemsSection">
+          <div class="section-header">
+            <h2>⚠️ Проблемные зоны</h2>
+          </div>
+          ${problems.length > 0 ? problems.map(i => `
+            <div class="problem-item ${getProblemPriorityClass(i.priority)}">
+              <div class="problem-header">
+                <div class="problem-title">${i.title}</div>
+                <span class="problem-priority ${getProblemPriorityClass(i.priority)}">${getProblemPriorityText(i.priority)}</span>
+              </div>
+              <div class="problem-desc">${i.desc}</div>
+              <div class="problem-action">→ ${i.action}</div>
+            </div>
+          `).join('') : `
+            <div style="padding: 20px; background: #ecfdf5; border-radius: 8px; border-left: 4px solid #10b981;">
+              <div style="font-weight: 600; color: #065f46; margin-bottom: 4px;">✅ Проблемных зон не обнаружено</div>
+              <div style="font-size: 13px; color: #065f46;">Все метрики в пределах нормы. Продолжайте в том же духе!</div>
+            </div>
+          `}
+        </div>
+      `;
+
+      if (strengths.length > 0) {
+        html += `
+          <div class="problems-section">
+            <div class="section-header">
+              <h2>💪 Сильные стороны</h2>
+            </div>
+            ${strengths.map(s => `
+              <div class="problem-item success">
+                <div class="problem-header">
+                  <div class="problem-title">${s.title}</div>
+                  <span class="problem-priority low">Преимущество</span>
+                </div>
+                <div class="problem-desc">${s.desc}</div>
+                <div class="problem-action">→ ${s.action}</div>
+              </div>
+            `).join('')}
+          </div>
+        `;
+      }
+
+      html += `
+        <div class="charts-row">
+          <div class="chart-card">
+            <h3>Профиль работы офиса</h3>
+            <div class="chart-subtitle">Средние оценки по 5 аспектам</div>
+            <canvas id="radarChart"></canvas>
+          </div>
+          <div class="chart-card">
+            <h3>Оценки по департаментам</h3>
+            <div class="chart-subtitle">Heatmap: чем краснее, тем хуже</div>
+            <table class="heatmap-table">
+              <thead>
+                <tr>
+                  <th>Департамент</th>
+                  <th>Эфф.</th><th>Комм.</th><th>Прозр.</th><th>Опер.</th><th>Скор.</th>
+                  <th>CSAT</th><th>NPS</th><th>SLA</th><th>FTE</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${Object.entries(metrics.byDepartment).map(([dept, data]) => `
+                  <tr>
+                    <td class="dept-name">${dept}</td>
+                    <td><span class="heatmap-cell ${evaluateScale10(data.avgEffectiveness).color}">${data.avgEffectiveness}</span></td>
+                    <td><span class="heatmap-cell ${evaluateScale10(data.avgCommunication).color}">${data.avgCommunication}</span></td>
+                    <td><span class="heatmap-cell ${evaluateScale10(data.avgTransparency).color}">${data.avgTransparency}</span></td>
+                    <td><span class="heatmap-cell ${evaluateScale10(data.avgResponsiveness).color}">${data.avgResponsiveness}</span></td>
+                    <td><span class="heatmap-cell ${evaluateScale10(data.avgClosureSpeed).color}">${data.avgClosureSpeed}</span></td>
+                    <td><span class="heatmap-cell ${evaluateScale10(data.avgCsat).color}">${data.avgCsat}</span></td>
+                    <td><span class="heatmap-cell ${evaluateScale10(data.avgNps).color}">${data.avgNps}</span></td>
+                    <td><span class="heatmap-cell ${evaluatePercent(data.slaPercentage, 85).color}">${data.slaPercentage}%</span></td>
+                    <td><span class="heatmap-cell ${evaluatePercent(data.ftePercentage, 70).color}">${data.ftePercentage}%</span></td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      `;
+
+      if (themes.length > 0) {
+        html += `
+          <div class="voice-section">
+            <div class="section-header">
+              <h2>💬 Темы в комментариях</h2>
+            </div>
+            <div class="themes-list">
+              ${themes.map(([theme, count]) => `
+                <div class="theme-item">
+                  <div class="theme-header">
+                    <div class="theme-title">${theme}</div>
+                    <div class="theme-count">${count} упом.</div>
+                  </div>
+                  <div class="theme-examples">Наиболее частая тема в ответах</div>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+        `;
+      }
+
+      if (callbackRequests.length > 0) {
+        html += `
+          <div class="collapsible-section">
+            <div class="collapsible-header" onclick="toggleSection('callback')">
+              <div style="display:flex; align-items:center; gap:12px;">
+                <h2>📞 Ожидают обратной связи</h2>
+                <span class="section-count">${callbackRequests.length} сотрудников</span>
+              </div>
+              <span class="collapsible-toggle" id="callbackToggle">Развернуть ▼</span>
+            </div>
+            <div class="collapsible-content" id="callbackContent">
+              <div style="text-align:center; padding:40px; color:#94a3b8;">Загрузка...</div>
+            </div>
+          </div>
+        `;
+      }
+
+      html += `
+        <div class="collapsible-section">
+          <div class="collapsible-header" onclick="toggleSection('rawData')">
+            <div style="display:flex; align-items:center; gap:12px;">
+              <h2>📋 Детальные ответы</h2>
+              <span class="section-count">${responses.length} записей</span>
+            </div>
+            <span class="collapsible-toggle" id="rawDataToggle">Развернуть ▼</span>
+          </div>
+          <div class="collapsible-content" id="rawDataContent">
+            <div style="text-align:center; padding:40px; color:#94a3b8;">Загрузка...</div>
+          </div>
+        </div>
+      `;
+
+      container.innerHTML = html;
+
+      setTimeout(() => {
+        const radarCanvas = document.getElementById('radarChart');
+        if (radarCanvas) {
+          if (charts.radar) charts.radar.destroy();
+          charts.radar = new Chart(radarCanvas.getContext('2d'), {
+            type: 'radar',
+            data: {
+              labels: ['Эффективность', 'Коммуникация', 'Прозрачность', 'Оперативность', 'Скорость'],
+              datasets: [{
+                label: 'Текущие показатели',
+                data: [
+                  parseFloat(metrics.averages.effectiveness),
+                  parseFloat(metrics.averages.communication),
+                  parseFloat(metrics.averages.transparency),
+                  parseFloat(metrics.averages.responsiveness),
+                  parseFloat(metrics.averages.closure_speed)
+                ],
+                backgroundColor: 'rgba(0, 102, 204, 0.2)',
+                borderColor: '#0066cc',
+                borderWidth: 2,
+                pointBackgroundColor: '#0066cc'
+              }]
+            },
+            options: {
+              responsive: true,
+              maintainAspectRatio: true,
+              scales: { r: { beginAtZero: true, max: 10 } }
+            }
+          });
+        }
+        
+        if (callbackRequests.length > 0) {
+          renderCallbackTable(callbackRequests);
+        }
+        renderRawDataTable(responses);
+      }, 50);
+    }
+
+    function refreshData() { loadData(); }
+
+    document.getElementById('filterDepartment').addEventListener('change', (e) => {
+      currentFilters.department = e.target.value;
+      currentPage = 1;
+      currentPageCallback = 1;
+      applyFilters();
+    });
+
+    document.getElementById('filterRole').addEventListener('change', (e) => {
+      currentFilters.role = e.target.value;
+      currentPage = 1;
+      currentPageCallback = 1;
+      applyFilters();
+    });
+
+    loadData();
+  </script>
+</body>
+</html>
